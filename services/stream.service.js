@@ -8,6 +8,7 @@ const createStream = async (req, res) => {
         const { startingBid, creatorId, productId } = req.body;
         let image = req.file
         let url = await uploadFile(image);
+        console.log(url, 'url');
         const { streamId, token } = await generateZegoStream(creatorId);
         const newStream = new LiveStream({ startingBid, creatorId, streamId, token, coverImage: url, productId });
         await newStream.save();
@@ -94,4 +95,13 @@ const getMessages = async (req, res) => {
     }
 };
 
-module.exports = { createStream, getActive, getSingle, endStream, getCreatorActiveStream, getToken, createMessage, getMessages };
+const getUserStreams = async (req,res) => {
+    try {
+        const activeStreams = await LiveStream.find({ creatorId: req?.params?.id }).populate("productId")
+        res.status(200).json({ data: activeStreams, msg: "" });
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+module.exports = { createStream, getActive, getSingle, endStream, getCreatorActiveStream, getToken, createMessage, getMessages, getUserStreams };

@@ -14,6 +14,7 @@ const createProduct = async (req, res) => {
                 urls.push(element);
             }
         }
+        console.log(urls,'urls');
         const Product = new ProductModel({ size, images: urls, userId, title, description, listing_type, shipping_type, categories: JSON.parse(categories), tags: JSON.parse(tags), colors: JSON.parse(colors), weight, dimensions, quantity, price, stock });
         await Product.save();
         return res.status(200).json({ data: Product, msg: "Product created successfully", status: 200 });

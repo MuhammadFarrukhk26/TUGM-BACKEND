@@ -62,6 +62,8 @@ const sendMessage = async (req, res) => {
         const populated = await ChatModel.findById(chatId)
             .populate("messages.sender", "username profile");
 
+            console.log('newMessage')
+
         emitToUser(chatId.toString(), "newMessage", populated.messages[populated.messages.length - 1]);
 
         return res.status(200).json({ data: populated.messages[populated.messages.length - 1], msg: "Message sent" });

@@ -29,6 +29,25 @@ const setupSocket = (io) => {
             io.to(data.streamId).emit("newPerk", data);
         });
         socket.on("sendMessage", (payload) => { console.log("sendMessage received:", payload); });
+        socket.on("sendGift", (payload) => {
+            try {
+                const streamId = payload && (payload.streamId || payload.room);
+                if (!streamId) return;
+                io.to(String(streamId)).emit("newGift", payload);
+            } catch (e) {
+                console.error("sendGift handler error:", e);
+            }
+        });
+
+        socket.on("sendBid", (payload) => {
+            try {
+                const streamId = payload && (payload.streamId || payload.room);
+                if (!streamId) return;
+                io.to(String(streamId)).emit("newBid", payload);
+            } catch (e) {
+                console.error("sendBid handler error:", e);
+            }
+        });
         socket.on("disconnect", () => {
             console.log("User disconnected:", socket.id);
         });
