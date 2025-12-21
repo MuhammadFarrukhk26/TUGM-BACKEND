@@ -13,6 +13,7 @@ const LiveStreamSchema = new mongoose.Schema({
     streamId: { type: String, required: true },
     token: { type: String, required: true },
     status: { type: String, enum: ["active", "ended"], default: "active" },
+    biddingEndTime: { type: Number, default: 5 },
     createdAt: { type: Date, default: Date.now },
 });
 LiveStreamSchema.path("productId").default(() => []);

@@ -1,5 +1,6 @@
 const { generateZegoStream, uploadFile, generateAgoraToken } = require("../utils/function");
 const LiveStream = require("../models/stream.model");
+const Bidding = require("../models/bidding.model");
 const BattleMessage = require("../models/battleMessage.model");
 const { emitToUser } = require("../config/socket.config");
 
@@ -95,7 +96,62 @@ const getMessages = async (req, res) => {
     }
 };
 
-const getUserStreams = async (req,res) => {
+const increaseBiddingTimer = async (req, res) => {
+    try {
+        const { streamId, biddingEndTime } = req.body;
+        const stream = await LiveStream.findById(streamId);
+        if (!stream) {
+            return res.status(404).json({ error: "Stream not found" });
+        }
+        stream.biddingEndTime = stream.biddingEndTime + biddingEndTime
+        await stream.save();
+        emitToUser(stream.streamId.toString(), "biddingTimeUpdated", { biddingEndTime: stream.biddingEndTime });
+        res.status(200).json({ data: stream, msg: "Bidding time increased" });
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const createBidding = async (req, res) => {
+    try {
+        const { streamId, bidderId, bidAmount } = req.body;
+        console.log(streamId,'streamId of create bidding')
+        if (!streamId || !bidderId || !bidAmount) {
+            return res.status(400).json({ error: "streamId, bidderId and bidAmount are required" });
+        }
+
+        const stream = await LiveStream.findById(streamId);
+        if (!stream) {
+            return res.status(404).json({ error: "Stream not found" });
+        }
+        const newBidding = new Bidding({ streamId, bidderId, bidAmount });
+        await newBidding.save();
+        const populatedBidding = await newBidding.populate("bidderId");
+        emitToUser(stream.streamId.toString(), "newBidding", populatedBidding);
+
+        return res.status(200).json({
+            data: populatedBidding,
+            msg: "Bidding created"
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+const getAllBidding = async (req, res) => {
+    try {
+        const { streamId } = req.params;
+        console.log(streamId,'streamId of get all bidding')
+        const biddings = await Bidding.find({ streamId }).populate("bidderId").sort({ bidAmount: -1 });
+        res.status(200).json({ data: biddings, msg: "Biddings fetched" });
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const getUserStreams = async (req, res) => {
     try {
         const activeStreams = await LiveStream.find({ creatorId: req?.params?.id }).populate("productId")
         res.status(200).json({ data: activeStreams, msg: "" });
@@ -104,4 +160,4 @@ const getUserStreams = async (req,res) => {
     }
 }
 
-module.exports = { createStream, getActive, getSingle, endStream, getCreatorActiveStream, getToken, createMessage, getMessages, getUserStreams };
+module.exports = { increaseBiddingTimer, createBidding, getAllBidding, createStream, getActive, getSingle, endStream, getCreatorActiveStream, getToken, createMessage, getMessages, getUserStreams };

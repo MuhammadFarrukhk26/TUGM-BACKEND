@@ -1,13 +1,8 @@
-const mongoose = require("mongoose");
+const { default: mongoose } = require("mongoose");
 
 const biddingSchema = new mongoose.Schema({
     streamId: { type: mongoose.Schema.Types.ObjectId, ref: "LiveStream", required: true },
-    userId:{type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true},
-    amount:{type: String, required: true },
-    winner:{type:Boolean,default:false},
-    isPaid:{type:Boolean,default:false}
+    bidderId: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
+    bidAmount: { type: Number, required: true },
 });
-
-const BiddingModel = mongoose.model("Bidding", biddingSchema, "Bidding");
-
-module.exports = { BiddingModel };
+module.exports = mongoose.model("Bidding", biddingSchema,'Bidding');
