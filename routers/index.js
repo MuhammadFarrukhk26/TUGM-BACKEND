@@ -8,6 +8,7 @@ combineRouter.use("/order",require("./order.router"))
 combineRouter.use("/payment",require("./payment.router"))
 combineRouter.use("/stream",require("./stream.router"))
 combineRouter.use("/bidding",require("./bidding.router"))
+combineRouter.use("/shipment", require("./shipment.router"));
 combineRouter.use("/story",require("./story.router"))
 combineRouter.use("/gift",require("./gift.router"))
 combineRouter.use("/gifts",require("./gifts.router"))
