@@ -86,5 +86,100 @@ const uploadPicture = async (req, res) => {
     }
 }
 
+const addReview = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const { userId, rating, comment } = req.body;
 
-module.exports = { getAllProduct, createProduct, deleteProduct, updateProduct, uploadPicture, getAllProductSeller, getSingleProduct };
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ msg: "Rating must be between 1 and 5", status: 400 });
+        }
+
+        if (!comment || comment.trim().length === 0) {
+            return res.status(400).json({ msg: "Comment cannot be empty", status: 400 });
+        }
+
+        const product = await ProductModel.findById(productId);
+        if (!product) {
+            return res.status(404).json({ msg: "Product not found", status: 404 });
+        }
+
+        // Add review to product
+        product.reviews.push({ userId, rating, comment });
+
+        // Calculate average rating
+        const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+        product.averageRating = (totalRating / product.reviews.length).toFixed(1);
+
+        await product.save();
+
+        return res.status(200).json({ 
+            data: product, 
+            msg: "Review added successfully", 
+            status: 200 
+        });
+    } catch (error) {
+        console.error("Error adding review:", error);
+        return res.status(500).json({ success: false, msg: "Failed to add review" });
+    }
+};
+
+const getProductReviews = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        const product = await ProductModel.findById(productId).populate("reviews.userId", "username email");
+        
+        if (!product) {
+            return res.status(404).json({ msg: "Product not found", status: 404 });
+        }
+
+        return res.status(200).json({ 
+            data: {
+                reviews: product.reviews,
+                averageRating: product.averageRating,
+                totalReviews: product.reviews.length
+            },
+            msg: "", 
+            status: 200 
+        });
+    } catch (error) {
+        console.error("Error fetching reviews:", error);
+        return res.status(500).json({ success: false, msg: "Failed to fetch reviews" });
+    }
+};
+
+const deleteReview = async (req, res) => {
+    try {
+        const { productId, reviewId } = req.params;
+
+        const product = await ProductModel.findById(productId);
+        if (!product) {
+            return res.status(404).json({ msg: "Product not found", status: 404 });
+        }
+
+        // Remove review
+        product.reviews = product.reviews.filter(review => review._id.toString() !== reviewId);
+
+        // Recalculate average rating
+        if (product.reviews.length > 0) {
+            const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+            product.averageRating = (totalRating / product.reviews.length).toFixed(1);
+        } else {
+            product.averageRating = 0;
+        }
+
+        await product.save();
+
+        return res.status(200).json({ 
+            data: product, 
+            msg: "Review deleted successfully", 
+            status: 200 
+        });
+    } catch (error) {
+        console.error("Error deleting review:", error);
+        return res.status(500).json({ success: false, msg: "Failed to delete review" });
+    }
+};
+
+module.exports = { getAllProduct, createProduct, deleteProduct, updateProduct, uploadPicture, getAllProductSeller, getSingleProduct, addReview, getProductReviews, deleteReview };

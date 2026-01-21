@@ -60,6 +60,23 @@ const getOrderForUser = async (req, res) => {
     }
 };
 
+const getSingleOrder = async (req, res) => {
+    try {
+        const Order = await OrderModel.findById(req?.params?.id)
+            .populate("userId")
+            .populate("sellerId")
+            .populate("productId");
+
+        if (!Order) {
+            return res.status(404).json({ msg: "Order not found", status: 404 });
+        }
+
+        return res.status(200).json({ data: Order, msg: "", status: 200 });
+    } catch (error) {
+        console.error("Error fetching order:", error);
+        return res.status(500).json({ success: false, msg: "Failed to fetch order" });
+    }
+};
 
 const markAsDelivered = async (req, res) => {
     try {
@@ -77,6 +94,32 @@ const changeStatus = async (req, res) => {
     }
     catch (error) {
         console.log(error)
+    }
+}
+
+const cancelOrder = async (req, res) => {
+    try {
+        const order = await OrderModel.findById(req?.params?.id);
+
+        if (!order) {
+            return res.status(404).json({ msg: "Order not found", status: 404 });
+        }
+
+        if (order.status === "delivered") {
+            return res.status(400).json({ msg: "Cannot cancel a delivered order", status: 400 });
+        }
+
+        if (order.status === "cancelled") {
+            return res.status(400).json({ msg: "Order is already cancelled", status: 400 });
+        }
+
+        order.status = "cancelled";
+        await order.save();
+
+        return res.status(200).json({ data: order, msg: "Order cancelled successfully", status: 200 });
+    } catch (error) {
+        console.error("Error cancelling order:", error);
+        return res.status(500).json({ success: false, msg: "Failed to cancel order" });
     }
 }
 
@@ -315,4 +358,4 @@ const printLabel = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getOrderForSeller, getOrderForUser, markAsDelivered, changeStatus, printLabel }
+module.exports = { createOrder, getOrderForSeller, getOrderForUser, getSingleOrder, markAsDelivered, changeStatus, cancelOrder, printLabel }
