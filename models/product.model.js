@@ -25,7 +25,9 @@ const productSchema = new mongoose.Schema({
     stock: { type: Number, required: true },
     reviews: [reviewSchema],
     averageRating: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null }
 });
 
 const ProductModel = mongoose.model("Product", productSchema, "Product");

@@ -27,7 +27,7 @@ const createProduct = async (req, res) => {
 
 const getAllProduct = async (req, res) => {
     try {
-        const Product = await ProductModel.find({})
+        const Product = await ProductModel.find({ isDeleted: false })
         return res.status(200).json({ data: Product, msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
@@ -36,7 +36,7 @@ const getAllProduct = async (req, res) => {
 };
 const getAllProductSeller = async (req, res) => {
     try {
-        const Product = await ProductModel.find({ userId: req?.params?.id })
+        const Product = await ProductModel.find({ userId: req?.params?.id, isDeleted: false })
         return res.status(200).json({ data: Product, msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
@@ -45,7 +45,10 @@ const getAllProductSeller = async (req, res) => {
 };
 const getSingleProduct = async (req, res) => {
     try {
-        const Product = await ProductModel.findById(req?.params?.id)
+        const Product = await ProductModel.findById(req?.params?.id);
+        if (Product && Product.isDeleted) {
+            return res.status(404).json({ msg: "Product not found", status: 404 });
+        }
         return res.status(200).json({ data: Product, msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
@@ -63,10 +66,18 @@ const updateProduct = async (req, res) => {
         return { success: false, msg: "Failed to fetch Post" };
     }
 };
+
 const deleteProduct = async (req, res) => {
     try {
-        await ProductModel.findByIdAndDelete(req.params?.id);
-        return res.status(200).json({ data: null, msg: "Product deleted successfully", status: 200 });
+        const Product = await ProductModel.findByIdAndUpdate(
+            req.params?.id,
+            { isDeleted: true, deletedAt: new Date() },
+            { new: true }
+        );
+        if (!Product) {
+            return res.status(404).json({ msg: "Product not found", status: 404 });
+        }
+        return res.status(200).json({ data: Product, msg: "Product deleted successfully", status: 200 });
     }
     catch (error) {
         console.error("Error deleting Post:", error);
