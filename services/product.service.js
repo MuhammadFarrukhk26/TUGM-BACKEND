@@ -128,7 +128,7 @@ const addReview = async (req, res) => {
         });
     } catch (error) {
         console.error("Error adding review:", error);
-        return res.status(500).json({ success: false, msg: "Failed to add review" });
+        return res.status(500).json({ success: false, msg: `Failed to add review ${error}` });
     }
 };
 

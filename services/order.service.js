@@ -327,7 +327,7 @@ const printLabel = async (req, res) => {
             shipmentBody,
             { headers, responseType: "arraybuffer" } // important for PDF
         );
-
+console.log(shipmentResponse.data, 'shipmentResponse.data');
         // Convert PDF data to buffer
         const pdfBuffer = Buffer.from(shipmentResponse.data, "binary");
 
@@ -357,5 +357,113 @@ const printLabel = async (req, res) => {
         res.status(500).json({ message: "Failed to generate shipment PDF", error: error.message });
     }
 };
+
+// const printLabel = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const order = await OrderModel.findById(id).populate("userId");
+
+//         if (!order) {
+//             return res.status(404).json({ message: "Order not found" });
+//         }
+
+//         const shipmentBody = {
+//             carrier: "USPS",
+//             service_key: "USPS Priority Mail, United States",
+//             from: {
+//                 name: "Harry",
+//                 company: "PixArts",
+//                 phone: "10098765432",
+//                 street1: "19555 Northeast 10th Avenue",
+//                 city: "Miami",
+//                 state: "Florida",
+//                 country: "US",
+//                 zip: "33179"
+//             },
+//             to: {
+//                 name: order.userId?.username || "Harry",
+//                 company: "TUGM",
+//                 phone: "10098765432",
+//                 street1: "19555 Northeast 10th Avenue",
+//                 city: "Miami",
+//                 state: "Florida",
+//                 country: "US",
+//                 zip: "33179"
+//             },
+//             return_to: {
+//                 name: "Harry",
+//                 company: "PixArts",
+//                 phone: "10098765432",
+//                 street1: "4 Federal Lane",
+//                 city: "Palm Coast",
+//                 state: "FL",
+//                 country: "US",
+//                 zip: "32137"
+//             },
+//             misc: {
+//                 length: 1,
+//                 width: 2,
+//                 height: 2,
+//                 weight: 3
+//             },
+//             options: {
+//                 saturday_delivery: true,
+//                 address_validation: true
+//             }
+//         };
+
+//         const headers = {
+//             "api-key": "ps_key_7uV4eJLDRVfWtxiuuBucjt5tgzo1KV",
+//             "api-secret": "ps_secret_0zNpGz9eHMBPbyCiZh7bVAFK4DVokCT5Xi1",
+//             "Content-Type": "application/json"
+//         };
+
+//         // 1️⃣ Create shipment (JSON response)
+//         const shipmentResponse = await axios.post(
+//             "https://ship.postmerica.com/apis/api/v1/create-shipment",
+//             shipmentBody,
+//             { headers }
+//         );
+//         console.log(shipmentResponse.data,'shipmentResponse.data')
+//         const labelUrl = shipmentResponse.data?.label_url;
+
+//         if (!labelUrl) {
+//             throw new Error("Label URL not returned from shipment API");
+//         }
+
+//         // 2️⃣ Download actual PDF
+//         const pdfResponse = await axios.get(labelUrl, {
+//             responseType: "arraybuffer"
+//         });
+
+//         const pdfBuffer = Buffer.from(pdfResponse.data);
+
+//         // Optional: upload to S3 / cloud
+//         const fileName = `shipment_${order._id}.pdf`;
+//         const pdfUrl = await uploadFile({
+//             originalname: fileName,
+//             buffer: pdfBuffer
+//         });
+
+//         order.shipmentPdfUrl = pdfUrl;
+//         await order.save();
+
+//         // 3️⃣ Send PDF to frontend
+//         res.set({
+//             "Content-Type": "application/pdf",
+//             "Content-Disposition": `inline; filename="${fileName}"`,
+//             "Content-Length": pdfBuffer.length
+//         });
+
+//         return res.end(pdfBuffer);
+
+//     } catch (error) {
+//         console.error("Label print error:", error.response?.data || error.message);
+//         res.status(500).json({
+//             message: "Failed to generate shipment PDF",
+//             error: error.message
+//         });
+//     }
+// };
 
 module.exports = { createOrder, getOrderForSeller, getOrderForUser, getSingleOrder, markAsDelivered, changeStatus, cancelOrder, printLabel }
