@@ -137,7 +137,7 @@ const printLabel = async (req, res) => {
                 "street1": "19555 Northeast 10th Avenue",
                 "street2": "",
                 "city": "Miami",
-                "state": "Florida",
+                "state": "FL",
                 "country": "US",
                 "zip": "33179"
             },
@@ -148,7 +148,7 @@ const printLabel = async (req, res) => {
                 "street1": "19555 Northeast 10th Avenue",
                 "street2": "",
                 "city": "Miami",
-                "state": "Florida",
+                "state": "FL",
                 "country": "US",
                 "zip": "33179"
             },
@@ -215,8 +215,20 @@ const printLabel = async (req, res) => {
 
 
     } catch (error) {
-        console.error("Label print error:", JSON.stringify(error));
-        res.status(500).json({ message: "Failed to generate shipment PDF", error: error.message });
+        console.log("ERROR MESSAGE:", error.message);
+
+        if (error.response) {
+            console.log("STATUS:", error.response.status);
+            console.log("HEADERS:", error.response.headers);
+            console.log("DATA:", error.response.data?.toString());
+        } else {
+            console.log("FULL ERROR:", error);
+        }
+
+        return res.status(500).json({
+            message: "Failed to generate shipment PDF",
+            error: error.message,
+        });
     }
 };
 // const printLabel = async (req, res) => {
