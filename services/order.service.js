@@ -187,7 +187,7 @@ const printLabel = async (req, res) => {
         const shipmentResponse = await axios.post(
             "https://ship.postmerica.com/apis/api/v1/create-shipment",
             shipmentBody,
-            { headers, responseType: "arraybuffer" } // important for PDF
+            { headers, responseType: "arraybuffer", timeout: 60000, } // important for PDF
         );
         console.log(shipmentResponse.data, 'shipmentResponse.data');
         // Convert PDF data to buffer
@@ -215,14 +215,13 @@ const printLabel = async (req, res) => {
 
 
     } catch (error) {
-        console.log("ERROR MESSAGE:", error.message);
+        console.log("ERROR:", error.message);
 
         if (error.response) {
             console.log("STATUS:", error.response.status);
-            console.log("HEADERS:", error.response.headers);
             console.log("DATA:", error.response.data?.toString());
-        } else {
-            console.log("FULL ERROR:", error);
+        } else if (error.request) {
+            console.log("NO RESPONSE RECEIVED:", error.request);
         }
 
         return res.status(500).json({
