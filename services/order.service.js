@@ -122,7 +122,103 @@ const cancelOrder = async (req, res) => {
         return res.status(500).json({ success: false, msg: "Failed to cancel order" });
     }
 }
+const printLabel = async (req, res) => {
+    try {
+        let { id } = req.params;
+        let order = await OrderModel.findById(id).populate("userId");
 
+        const shipmentBody = {
+            "carrier": "USPS",
+            "service_key": "USPS Priority Mail, United States",
+            "from": {
+                "name": "Harry",
+                "company": "PixArts",
+                "phone": "10098765432",
+                "street1": "19555 Northeast 10th Avenue",
+                "street2": "",
+                "city": "Miami",
+                "state": "Florida",
+                "country": "US",
+                "zip": "33179"
+            },
+            "to": {
+                "name": order.userId?.username || "Harry",
+                "company": "TUGM",
+                "phone": "10098765432",
+                "street1": "19555 Northeast 10th Avenue",
+                "street2": "",
+                "city": "Miami",
+                "state": "Florida",
+                "country": "US",
+                "zip": "33179"
+            },
+            "return_to": {
+                "name": "Harry",
+                "company": "PixArts",
+                "phone": "10098765432",
+                "street1": "4 Federal Lane",
+                "street2": "",
+                "city": "Palm Coast",
+                "state": "FL",
+                "country": "US",
+                "zip": "32137"
+            },
+            "misc": {
+                "length": 1,
+                "width": 2,
+                "height": 2,
+                "weight": 3
+            },
+            "options": {
+                "is_insured": false,
+                "cost_of_shipment": 0,
+                "receiver_signature": false,
+                "saturday_delivery": true,
+                "address_validation": true
+            }
+        };
+
+        const headers = {
+            "api-key": "ps_key_7uV4eJLDRVfWtxiuuBucjt5tgzo1KV",
+            "api-secret": "ps_secret_0zNpGz9eHMBPbyCiZh7bVAFK4DVokCT5Xi1",
+            "Content-Type": "application/json"
+        };
+
+        const shipmentResponse = await axios.post(
+            "https://ship.postmerica.com/apis/api/v1/create-shipment",
+            shipmentBody,
+            { headers, responseType: "arraybuffer" } // important for PDF
+        );
+        console.log(shipmentResponse.data, 'shipmentResponse.data');
+        // Convert PDF data to buffer
+        const pdfBuffer = Buffer.from(shipmentResponse.data, "binary");
+
+        // Create a filename
+        const fileName = `shipment_${order._id}.pdf`;
+        const filePath = path.join(process.cwd(), fileName); // store in root directory
+
+        // Save PDF to root directory
+        fs.writeFileSync(filePath, pdfBuffer);
+        console.log(`PDF saved at: ${filePath}`);
+        const pdfUrl = await uploadFile({ originalname: fileName, buffer: pdfBuffer });
+        console.log(pdfUrl, 'pdfUrl');
+        order.shipmentPdfUrl = pdfUrl;
+        await order.save();
+
+        res.set({
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename=${fileName}`,
+            "Content-Length": pdfBuffer.length
+        });
+
+        return res.send(pdfBuffer);
+
+
+    } catch (error) {
+        console.error("Label print error:", JSON.stringify(error));
+        res.status(500).json({ message: "Failed to generate shipment PDF", error: error.message });
+    }
+};
 // const printLabel = async (req, res) => {
 //     try {
 //         let { id } = req.params
@@ -260,103 +356,103 @@ const cancelOrder = async (req, res) => {
 //     }
 // }
 
-const printLabel = async (req, res) => {
-    try {
-        let { id } = req.params;
-        let order = await OrderModel.findById(id).populate("userId");
+// const printLabel = async (req, res) => {
+//     try {
+//         let { id } = req.params;
+//         let order = await OrderModel.findById(id).populate("userId");
 
-        const shipmentBody = {
-            "carrier": "USPS",
-            "service_key": "USPS Priority Mail, United States",
-            "from": {
-                "name": "Harry",
-                "company": "PixArts",
-                "phone": "10098765432",
-                "street1": "19555 Northeast 10th Avenue",
-                "street2": "",
-                "city": "Miami",
-                "state": "Florida",
-                "country": "US",
-                "zip": "33179"
-            },
-            "to": {
-                "name": order.userId?.username || "Harry",
-                "company": "TUGM",
-                "phone": "10098765432",
-                "street1": "19555 Northeast 10th Avenue",
-                "street2": "",
-                "city": "Miami",
-                "state": "Florida",
-                "country": "US",
-                "zip": "33179"
-            },
-            "return_to": {
-                "name": "Harry",
-                "company": "PixArts",
-                "phone": "10098765432",
-                "street1": "4 Federal Lane",
-                "street2": "",
-                "city": "Palm Coast",
-                "state": "FL",
-                "country": "US",
-                "zip": "32137"
-            },
-            "misc": {
-                "length": 1,
-                "width": 2,
-                "height": 2,
-                "weight": 3
-            },
-            "options": {
-                "is_insured": false,
-                "cost_of_shipment": 0,
-                "receiver_signature": false,
-                "saturday_delivery": true,
-                "address_validation": true
-            }
-        };
+//         const shipmentBody = {
+//             "carrier": "USPS",
+//             "service_key": "USPS Priority Mail, United States",
+//             "from": {
+//                 "name": "Harry",
+//                 "company": "PixArts",
+//                 "phone": "10098765432",
+//                 "street1": "19555 Northeast 10th Avenue",
+//                 "street2": "",
+//                 "city": "Miami",
+//                 "state": "Florida",
+//                 "country": "US",
+//                 "zip": "33179"
+//             },
+//             "to": {
+//                 "name": order.userId?.username || "Harry",
+//                 "company": "TUGM",
+//                 "phone": "10098765432",
+//                 "street1": "19555 Northeast 10th Avenue",
+//                 "street2": "",
+//                 "city": "Miami",
+//                 "state": "Florida",
+//                 "country": "US",
+//                 "zip": "33179"
+//             },
+//             "return_to": {
+//                 "name": "Harry",
+//                 "company": "PixArts",
+//                 "phone": "10098765432",
+//                 "street1": "4 Federal Lane",
+//                 "street2": "",
+//                 "city": "Palm Coast",
+//                 "state": "FL",
+//                 "country": "US",
+//                 "zip": "32137"
+//             },
+//             "misc": {
+//                 "length": 1,
+//                 "width": 2,
+//                 "height": 2,
+//                 "weight": 3
+//             },
+//             "options": {
+//                 "is_insured": false,
+//                 "cost_of_shipment": 0,
+//                 "receiver_signature": false,
+//                 "saturday_delivery": true,
+//                 "address_validation": true
+//             }
+//         };
 
-        const headers = {
-            "api-key": "ps_key_7uV4eJLDRVfWtxiuuBucjt5tgzo1KV",
-            "api-secret": "ps_secret_0zNpGz9eHMBPbyCiZh7bVAFK4DVokCT5Xi1",
-            "Content-Type": "application/json"
-        };
+//         const headers = {
+//             "api-key": "ps_key_7uV4eJLDRVfWtxiuuBucjt5tgzo1KV",
+//             "api-secret": "ps_secret_0zNpGz9eHMBPbyCiZh7bVAFK4DVokCT5Xi1",
+//             "Content-Type": "application/json"
+//         };
 
-        const shipmentResponse = await axios.post(
-            "https://ship.postmerica.com/apis/api/v1/create-shipment",
-            shipmentBody,
-            { headers, responseType: "arraybuffer" } // important for PDF
-        );
-console.log(shipmentResponse.data, 'shipmentResponse.data');
-        // Convert PDF data to buffer
-        const pdfBuffer = Buffer.from(shipmentResponse.data, "binary");
+//         const shipmentResponse = await axios.post(
+//             "https://ship.postmerica.com/apis/api/v1/create-shipment",
+//             shipmentBody,
+//             { headers, responseType: "arraybuffer" } // important for PDF
+//         );
+// console.log(shipmentResponse.data, 'shipmentResponse.data');
+//         // Convert PDF data to buffer
+//         const pdfBuffer = Buffer.from(shipmentResponse.data, "binary");
 
-        // Create a filename
-        const fileName = `shipment_${order._id}.pdf`;
-        const filePath = path.join(process.cwd(), fileName); // store in root directory
+//         // Create a filename
+//         const fileName = `shipment_${order._id}.pdf`;
+//         const filePath = path.join(process.cwd(), fileName); // store in root directory
 
-        // Save PDF to root directory
-        fs.writeFileSync(filePath, pdfBuffer);
-        console.log(`PDF saved at: ${filePath}`);
-        const pdfUrl = await uploadFile({ originalname: fileName, buffer: pdfBuffer });
-        console.log(pdfUrl, 'pdfUrl');
-        order.shipmentPdfUrl = pdfUrl;
-        await order.save();
+//         // Save PDF to root directory
+//         fs.writeFileSync(filePath, pdfBuffer);
+//         console.log(`PDF saved at: ${filePath}`);
+//         const pdfUrl = await uploadFile({ originalname: fileName, buffer: pdfBuffer });
+//         console.log(pdfUrl, 'pdfUrl');
+//         order.shipmentPdfUrl = pdfUrl;
+//         await order.save();
 
-        res.set({
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename=${fileName}`,
-            "Content-Length": pdfBuffer.length
-        });
+//         res.set({
+//             "Content-Type": "application/pdf",
+//             "Content-Disposition": `attachment; filename=${fileName}`,
+//             "Content-Length": pdfBuffer.length
+//         });
 
-        return res.send(pdfBuffer);
+//         return res.send(pdfBuffer);
 
 
-    } catch (error) {
-        console.error("Label print error:", JSON.stringify(error));
-        res.status(500).json({ message: "Failed to generate shipment PDF", error: error.message });
-    }
-};
+//     } catch (error) {
+//         console.error("Label print error:", JSON.stringify(error));
+//         res.status(500).json({ message: "Failed to generate shipment PDF", error: error.message });
+//     }
+// };
 
 // const printLabel = async (req, res) => {
 //     try {
