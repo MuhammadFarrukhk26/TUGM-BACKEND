@@ -187,7 +187,7 @@ const printLabel = async (req, res) => {
         const shipmentResponse = await axios.post(
             "https://ship.postmerica.com/apis/api/v1/create-shipment",
             shipmentBody,
-            { headers, responseType: "arraybuffer", timeout: 60000, } // important for PDF
+            { headers, responseType: "arraybuffer", timeout: 120000 } // important for PDF
         );
         console.log(shipmentResponse.data, 'shipmentResponse.data');
         // Convert PDF data to buffer
