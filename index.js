@@ -45,3 +45,4 @@ cron.schedule("0 * * * *", async () => {
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+server.setTimeout(120000);
