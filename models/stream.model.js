@@ -81,7 +81,7 @@ const LiveStreamSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
-  biddingEndTime: { type: Number, default: 5 },
+  // biddingEndTime: { type: Number, default: 5 },
   suddenDeath: {
     type: Boolean,
     default: false,

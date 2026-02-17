@@ -31,21 +31,30 @@ const createStream = async (req, res) => {
         } = req.body;
 
         if (!creatorId || !productId || !mode) {
-            console.log(creatorId)
-            console.log(productId)
-            console.log(mode)
+
             return res.status(400).json({
                 error: `creatorId, productId and mode are required ${creatorId}, ${productId}, ${mode}`
             });
         }
 
-        if (mode === "AUCTION") {
-            if (!startingBid || !duration) {
-                return res.status(400).json({
-                    error: `startingBid and duration required for auction ${startingBid}, ${duration}`
-                });
-            }
+        // if (mode === "AUCTION") {
+        //     if (!startingBid || !duration) {
+        //         return res.status(400).json({
+        //             error: `startingBid and duration required for auction ${startingBid}, ${duration}`
+        //         });
+        //     }
+        // }
+        const existingLive = await LiveStream.findOne({ productId, status: "LIVE" });
+        if (existingLive) {
+            return res.status(400).json({ error: "Stream already live for this product" });
         }
+        // if (mode === "AUCTION") {
+        //     if (!startingBid || !duration || isNaN(Number(duration))) {
+        //         return res.status(400).json({
+        //             error: "startingBid and valid duration are required for auction"
+        //         });
+        //     }
+        // }
 
         let coverImage = null;
         if (req.file) {
@@ -56,9 +65,20 @@ const createStream = async (req, res) => {
 
         const startTime = new Date();
         let endTime = null;
-
         if (mode === "AUCTION") {
-            endTime = new Date(startTime.getTime() + Number(duration) * 1000);
+            const durationSeconds = Number(duration);
+            if (isNaN(durationSeconds) || durationSeconds <= 0) {
+                return res.status(400).json({ error: "duration must be a positive number" });
+            }
+            endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
+
+            if (endTime <= startTime) {
+                return res.status(400).json({ error: "endTime must be greater than startTime" });
+            }
+            if (mode === "AUCTION") {
+                endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
+            }
+
         }
 
         const newStream = new LiveStream({
@@ -205,21 +225,21 @@ const getMessages = async (req, res) => {
     }
 };
 
-const increaseBiddingTimer = async (req, res) => {
-    try {
-        const { streamId, biddingEndTime } = req.body;
-        const stream = await LiveStream.findById(streamId);
-        if (!stream) {
-            return res.status(404).json({ error: "Stream not found" });
-        }
-        stream.biddingEndTime = stream.biddingEndTime + biddingEndTime
-        await stream.save();
-        emitToUser(stream.streamId.toString(), "biddingTimeUpdated", { biddingEndTime: stream.biddingEndTime });
-        res.status(200).json({ data: stream, msg: "Bidding time increased" });
-    } catch (error) {
-        console.log(error)
-    }
-}
+// const increaseBiddingTimer = async (req, res) => {
+//     try {
+//         const { streamId, biddingEndTime } = req.body;
+//         const stream = await LiveStream.findById(streamId);
+//         if (!stream) {
+//             return res.status(404).json({ error: "Stream not found" });
+//         }
+//         stream.biddingEndTime = stream.biddingEndTime + biddingEndTime
+//         await stream.save();
+//         emitToUser(stream.streamId.toString(), "biddingTimeUpdated", { biddingEndTime: stream.biddingEndTime });
+//         res.status(200).json({ data: stream, msg: "Bidding time increased" });
+//     } catch (error) {
+//         console.log(error)
+//     }
+// }
 
 // const createBidding = async (req, res) => {
 //     try {
@@ -245,6 +265,98 @@ const increaseBiddingTimer = async (req, res) => {
 //     } catch (error) {
 //         console.log(error);
 //         return res.status(500).json({ error: "Internal server error" });
+//     }
+// };
+
+
+const increaseBiddingTimer = async (req, res) => {
+    try {
+        const { streamId, biddingEndTime } = req.body;
+        const stream = await LiveStream.findById(streamId);
+
+        if (!stream) return res.status(404).json({ error: "Stream not found" });
+
+        const now = Date.now();
+        const nowTime = new Date(now).getTime()
+        const currentEnd = new Date(stream.endTime).getTime();
+        const currentDate = new Date(stream?.endTime)
+        console.log("Now:", new Date());
+        console.log("Current endTime:", stream.endTime);
+        let isExceeded = currentEnd <= nowTime ? true : false
+        console.log(isExceeded)
+        if (currentEnd <= nowTime)
+            return res.status(400).json({ error: "Auction already ended" });
+        if (biddingEndTime <= 0) {
+            return res.status(400).json({ error: "biddingEndTime must be positive" });
+        }
+        // Extend the current endTime
+        stream.endTime = new Date(currentEnd + biddingEndTime * 1000 * 1000);
+
+        await stream.save();
+
+        emitToUser(stream.streamId.toString(), "biddingTimeUpdated", {
+            endTime: stream.endTime
+        });
+
+        res.status(200).json({
+            data: stream,
+            msg: "Bidding time extended"
+        });
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: `Internal server error ${error}` });
+    }
+};
+
+
+// const increaseBiddingTimer = async (req, res) => {
+//     try {
+//         const { streamId, biddingEndTime } = req.body;
+
+//         const stream = await LiveStream.findById(streamId);
+//         if (!stream) {
+//             return res.status(404).json({ error: "Stream not found" });
+//         }
+
+//         // 1️⃣ Increase bidding duration (seconds)
+//         stream.biddingEndTime += biddingEndTime;
+
+//         // 2️⃣ Recalculate endTime properly
+//         // If endTime already exists, extend from current endTime
+//         if (stream.endTime) {
+//             stream.endTime = new Date(
+//                 new Date(stream.endTime).getTime() + (biddingEndTime * 1000)
+//             );
+//         }
+//         // Otherwise calculate from createdAt
+//         else {
+//             const created = new Date(stream.createdAt).getTime();
+//             stream.endTime = new Date(
+//                 created + (stream.biddingEndTime * 1000)
+//             );
+//         }
+
+//         await stream.save();
+
+//         emitToUser(
+//             stream.streamId.toString(),
+//             "biddingTimeUpdated",
+//             {
+//                 biddingEndTime: stream.biddingEndTime,
+//                 endTime: stream.endTime
+//             }
+//         );
+
+//         res.status(200).json({
+//             data: stream,
+//             msg: "Bidding time increased"
+//         });
+
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ error: "Internal server error" });
 //     }
 // };
 const createBidding = async (req, res) => {
