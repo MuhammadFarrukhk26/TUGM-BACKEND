@@ -3,6 +3,7 @@ const LiveStream = require("../models/stream.model");
 const Bidding = require("../models/bidding.model");
 const BattleMessage = require("../models/battleMessage.model");
 const { emitToUser } = require("../config/socket.config");
+const { AccountModel } = require("../models/account.model");
 
 // const createStream = async (req, res) => {
 //     try {
@@ -149,33 +150,114 @@ const getCreatorActiveStream = async (req, res) => {
 //         res.status(500).json({ error: error.message });
 //     }
 // };
+// const endStream = async (req, res) => {
+//     try {
+//         // Find the stream by its streamId
+//         const stream = await LiveStream.findOne({ streamId: req.params.id });
+//         console.log(stream, 'stream of end stream');
+
+//         if (!stream) {
+//             return res.status(404).json({ error: "Stream not found" });
+//         }
+
+//         // Set the winnerId to highestBidder and mark stream as completed
+//         stream.status = "COMPLETED";
+//         stream.winnerId = stream.highestBidder || null; // <-- ensure winnerId is set
+//         await stream.save();
+
+//         // Emit the auction ended event to the user
+//         emitToUser(stream.streamId.toString(), "auctionEnded", {
+//             winner: stream.winnerId,
+//             finalPrice: stream.currentBid
+//         });
+
+//         return res.status(200).json({
+//             data: stream,
+//             msg: "Stream Ended"
+//         });
+
+//     } catch (error) {
+//         console.error('Error ending stream:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
+
+
 const endStream = async (req, res) => {
     try {
-        const stream = await LiveStream.findById(req.params.id);
+        // Find the stream by its streamId
+        const stream = await LiveStream.findOne({ streamId: req.params.id });
+        console.log(stream, 'stream of end stream');
 
         if (!stream) {
-            return res.status(404).json({
-                error: "Stream not found"
-            });
+            return res.status(404).json({ error: "Stream not found" });
         }
 
+        // Set the winnerId to highestBidder and mark stream as completed
         stream.status = "COMPLETED";
+        stream.winnerId = stream.highestBidder || null;
+
+        let winnerName = null;
+        if (stream.winnerId) {
+            // Fetch winner details from Account/User model
+            const winner = await AccountModel.findById(stream.winnerId);
+            winnerName = winner ? winner.name : null; // or use firstName + lastName if applicable
+        }
+
         await stream.save();
 
+        // Emit the auction ended event to the user
         emitToUser(stream.streamId.toString(), "auctionEnded", {
-            winner: stream.highestBidder,
+            winnerId: stream.winnerId,
+            winnerName: winnerName,
             finalPrice: stream.currentBid
         });
 
         return res.status(200).json({
             data: stream,
-            msg: "Stream Ended"
+            msg: "Stream Ended",
+            winner: {
+                id: stream.winnerId,
+                name: winnerName
+            }
         });
 
     } catch (error) {
+        console.error('Error ending stream:', error);
         res.status(500).json({ error: error.message });
     }
 };
+
+// const endStream = async (req, res) => {
+//     try {
+//         const stream = await LiveStream.findOne({
+//             streamId: req.params.id
+//         });
+//         console.log(stream, 'stream of end stream')
+//         if (!stream) {
+//             return res.status(404).json({
+//                 error: "Stream not found"
+//             });
+//         }
+
+//         stream.status = "COMPLETED";
+//         await stream.save();
+
+//         emitToUser(stream.streamId.toString(), "auctionEnded", {
+//             winner: stream.highestBidder,
+//             finalPrice: stream.currentBid
+//         });
+
+//         return res.status(200).json({
+//             data: stream,
+//             msg: "Stream Ended"
+//         });
+
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//         console.log(error)
+//     }
+// };
 
 const getSingle = async (req, res) => {
     try {
@@ -457,17 +539,38 @@ const createBidding = async (req, res) => {
     }
 };
 
+// const getAllBidding = async (req, res) => {
+//     try {
+//         const { streamId } = req.params;
+//         console.log(streamId, 'streamId of get all bidding')
+//         const extractMongoId = (streamParam) => {
+//             const parts = streamParam.split("_");
+//             console.log(parts, 'parts of extract mongo id')
+//             return parts[1]; // middle part is ObjectId
+//         };
+//         const biddings = await Bidding.find({ streamId: extractMongoId(streamId) }).populate("bidderId").sort({ bidAmount: -1 });
+//         console.log(biddings, 'biddings of get all bidding')
+//         res.status(200).json({ data: biddings, msg: "Biddings fetched" });
+//     } catch (error) {
+//         console.log(error)
+//     }
+// }
 const getAllBidding = async (req, res) => {
     try {
-        const { streamId } = req.params;
-        console.log(streamId, 'streamId of get all bidding')
-        const biddings = await Bidding.find({ streamId }).populate("bidderId").sort({ bidAmount: -1 });
-        res.status(200).json({ data: biddings, msg: "Biddings fetched" });
-    } catch (error) {
-        console.log(error)
-    }
-}
+        const { streamId } = req.params; // e.g., 'stream_6992ea5e8d040b1d00b77a25_1771526681674'
+// console.log(streamId, 'streamId of get all bidding')
+        const biddings = await Bidding
+            .find({ streamId }) // use the full key exactly as stored
+            .populate("bidderId")
+            .sort({ bidAmount: -1, createdAt: 1 }); // tie-break by earliest bid
 
+        res.status(200).json({ data: biddings, msg: "Biddings fetched" });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error.message });
+    }
+};
 const getUserStreams = async (req, res) => {
     try {
         const activeStreams = await LiveStream.find({ creatorId: req?.params?.id }).populate("productId")
