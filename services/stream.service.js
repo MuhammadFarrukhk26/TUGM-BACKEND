@@ -64,24 +64,44 @@ const createStream = async (req, res) => {
 
         const { streamId, token } = await generateZegoStream(creatorId);
 
-        const startTime = new Date();
-        let endTime = null;
-        if (mode === "AUCTION") {
-            const durationSeconds = Number(duration);
-            if (isNaN(durationSeconds) || durationSeconds <= 0) {
-                return res.status(400).json({ error: "duration must be a positive number" });
-            }
-            endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
+        // const startTime = new Date();
+        // let endTime = null;
+        // if (mode === "AUCTION") {
+        //     const durationSeconds = Number(duration);
+        //     if (isNaN(durationSeconds) || durationSeconds <= 0) {
+        //         return res.status(400).json({ error: "duration must be a positive number" });
+        //     }
+        //     endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
 
-            if (endTime <= startTime) {
-                return res.status(400).json({ error: "endTime must be greater than startTime" });
-            }
-            if (mode === "AUCTION") {
-                endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
-            }
+        //     if (endTime <= startTime) {
+        //         return res.status(400).json({ error: "endTime must be greater than startTime" });
+        //     }
+        //     if (mode === "AUCTION") {
+        //         endTime = new Date(startTime.getTime() + durationSeconds * 1000 + 1000);
+        //     }
 
-        }
+        // }
+const startTime = new Date();
+let endTime = null;
 
+if (mode === "AUCTION") {
+
+    if (!startingBid || !duration) {
+        return res.status(400).json({
+            error: "startingBid and duration are required for AUCTION mode"
+        });
+    }
+
+    const durationSeconds = Number(duration);
+
+    if (isNaN(durationSeconds) || durationSeconds <= 0) {
+        return res.status(400).json({
+            error: "duration must be a positive number (in seconds)"
+        });
+    }
+
+    endTime = new Date(startTime.getTime() + durationSeconds * 1000);
+}
         const newStream = new LiveStream({
             creatorId,
             productId,
@@ -201,7 +221,9 @@ const endStream = async (req, res) => {
         if (stream.winnerId) {
             // Fetch winner details from Account/User model
             const winner = await AccountModel.findById(stream.winnerId);
-            winnerName = winner ? winner.name : null; // or use firstName + lastName if applicable
+            winnerImage = winner?.profile || null;
+            winnerName = winner ? winner.username : null; // or use firstName + lastName if applicable
+        console.log(winner, 'winnerName of end stream')
         }
 
         await stream.save();
@@ -218,7 +240,8 @@ const endStream = async (req, res) => {
             msg: "Stream Ended",
             winner: {
                 id: stream.winnerId,
-                name: winnerName
+                name: winnerName,
+                Image: winnerImage
             }
         });
 
