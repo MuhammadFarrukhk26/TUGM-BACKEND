@@ -395,7 +395,7 @@ const increaseBiddingTimer = async (req, res) => {
             return res.status(400).json({ error: "biddingEndTime must be positive" });
         }
         // Extend the current endTime
-        stream.endTime = new Date(currentEnd + biddingEndTime * 1000 * 1000);
+        stream.endTime = new Date(currentEnd + biddingEndTime * 1000);
 
         await stream.save();
 
