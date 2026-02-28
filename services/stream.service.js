@@ -218,6 +218,7 @@ const endStream = async (req, res) => {
         stream.winnerId = stream.highestBidder || null;
 
         let winnerName = null;
+        let winnerImage = null;
         if (stream.winnerId) {
             // Fetch winner details from Account/User model
             const winner = await AccountModel.findById(stream.winnerId);
@@ -241,7 +242,7 @@ const endStream = async (req, res) => {
             winner: {
                 id: stream.winnerId,
                 name: winnerName,
-                Image: winner?.profile || null
+                Image: winnerImage
             }
         });
 
