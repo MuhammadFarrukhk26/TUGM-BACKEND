@@ -241,7 +241,7 @@ const endStream = async (req, res) => {
             winner: {
                 id: stream.winnerId,
                 name: winnerName,
-                Image: winnerImage
+                Image: winner?.profile || null
             }
         });
 
