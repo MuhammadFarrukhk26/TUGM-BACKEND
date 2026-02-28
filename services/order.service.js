@@ -7,10 +7,11 @@ const path = require("path")
 const createOrder = async (req, res) => {
     try {
         const { userId, product, customer_address, pickup_station, city, state, zip, country } = req.body;
+        console.log(req.body, 'req.body');
 
         for (let index = 0; index < product.length; index++) {
             const element = product[index];
-
+            console.log(element, 'element');
             const Order = new OrderModel({
                 userId,
                 productId: element?._id,
