@@ -81,27 +81,27 @@ const createStream = async (req, res) => {
         //     }
 
         // }
-const startTime = new Date();
-let endTime = null;
+        const startTime = new Date();
+        let endTime = null;
 
-if (mode === "AUCTION") {
+        if (mode === "AUCTION") {
 
-    if (!startingBid || !duration) {
-        return res.status(400).json({
-            error: "startingBid and duration are required for AUCTION mode"
-        });
-    }
+            if (!startingBid || !duration) {
+                return res.status(400).json({
+                    error: "startingBid and duration are required for AUCTION mode"
+                });
+            }
 
-    const durationSeconds = Number(duration);
+            const durationSeconds = Number(duration);
 
-    if (isNaN(durationSeconds) || durationSeconds <= 0) {
-        return res.status(400).json({
-            error: "duration must be a positive number (in seconds)"
-        });
-    }
+            if (isNaN(durationSeconds) || durationSeconds <= 0) {
+                return res.status(400).json({
+                    error: "duration must be a positive number (in seconds)"
+                });
+            }
 
-    endTime = new Date(startTime.getTime() + durationSeconds * 1000);
-}
+            endTime = new Date(startTime.getTime() + durationSeconds * 1000);
+        }
         const newStream = new LiveStream({
             creatorId,
             productId,
@@ -224,7 +224,6 @@ const endStream = async (req, res) => {
             const winner = await AccountModel.findById(stream.winnerId);
             winnerImage = winner?.profile || null;
             winnerName = winner ? winner.username : null; // or use firstName + lastName if applicable
-        console.log(winner, 'winnerName of end stream')
         }
 
         await stream.save();
@@ -252,36 +251,6 @@ const endStream = async (req, res) => {
     }
 };
 
-// const endStream = async (req, res) => {
-//     try {
-//         const stream = await LiveStream.findOne({
-//             streamId: req.params.id
-//         });
-//         console.log(stream, 'stream of end stream')
-//         if (!stream) {
-//             return res.status(404).json({
-//                 error: "Stream not found"
-//             });
-//         }
-
-//         stream.status = "COMPLETED";
-//         await stream.save();
-
-//         emitToUser(stream.streamId.toString(), "auctionEnded", {
-//             winner: stream.highestBidder,
-//             finalPrice: stream.currentBid
-//         });
-
-//         return res.status(200).json({
-//             data: stream,
-//             msg: "Stream Ended"
-//         });
-
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//         console.log(error)
-//     }
-// };
 
 const getSingle = async (req, res) => {
     try {
@@ -331,48 +300,6 @@ const getMessages = async (req, res) => {
     }
 };
 
-// const increaseBiddingTimer = async (req, res) => {
-//     try {
-//         const { streamId, biddingEndTime } = req.body;
-//         const stream = await LiveStream.findById(streamId);
-//         if (!stream) {
-//             return res.status(404).json({ error: "Stream not found" });
-//         }
-//         stream.biddingEndTime = stream.biddingEndTime + biddingEndTime
-//         await stream.save();
-//         emitToUser(stream.streamId.toString(), "biddingTimeUpdated", { biddingEndTime: stream.biddingEndTime });
-//         res.status(200).json({ data: stream, msg: "Bidding time increased" });
-//     } catch (error) {
-//         console.log(error)
-//     }
-// }
-
-// const createBidding = async (req, res) => {
-//     try {
-//         const { streamId, bidderId, bidAmount } = req.body;
-//         console.log(streamId,'streamId of create bidding')
-//         if (!streamId || !bidderId || !bidAmount) {
-//             return res.status(400).json({ error: "streamId, bidderId and bidAmount are required" });
-//         }
-
-//         const stream = await LiveStream.findById(streamId);
-//         if (!stream) {
-//             return res.status(404).json({ error: "Stream not found" });
-//         }
-//         const newBidding = new Bidding({ streamId, bidderId, bidAmount });
-//         await newBidding.save();
-//         const populatedBidding = await newBidding.populate("bidderId");
-//         emitToUser(stream.streamId.toString(), "newBidding", populatedBidding);
-
-//         return res.status(200).json({
-//             data: populatedBidding,
-//             msg: "Bidding created"
-//         });
-//     } catch (error) {
-//         console.log(error);
-//         return res.status(500).json({ error: "Internal server error" });
-//     }
-// };
 
 
 const increaseBiddingTimer = async (req, res) => {
@@ -396,7 +323,7 @@ const increaseBiddingTimer = async (req, res) => {
             return res.status(400).json({ error: "biddingEndTime must be positive" });
         }
         // Extend the current endTime
-        stream.endTime = new Date(currentEnd + biddingEndTime);
+        stream.endTime = new Date(currentEnd + biddingEndTime * 1000);
 
         await stream.save();
 
@@ -417,54 +344,6 @@ const increaseBiddingTimer = async (req, res) => {
 };
 
 
-// const increaseBiddingTimer = async (req, res) => {
-//     try {
-//         const { streamId, biddingEndTime } = req.body;
-
-//         const stream = await LiveStream.findById(streamId);
-//         if (!stream) {
-//             return res.status(404).json({ error: "Stream not found" });
-//         }
-
-//         // 1️⃣ Increase bidding duration (seconds)
-//         stream.biddingEndTime += biddingEndTime;
-
-//         // 2️⃣ Recalculate endTime properly
-//         // If endTime already exists, extend from current endTime
-//         if (stream.endTime) {
-//             stream.endTime = new Date(
-//                 new Date(stream.endTime).getTime() + (biddingEndTime * 1000)
-//             );
-//         }
-//         // Otherwise calculate from createdAt
-//         else {
-//             const created = new Date(stream.createdAt).getTime();
-//             stream.endTime = new Date(
-//                 created + (stream.biddingEndTime * 1000)
-//             );
-//         }
-
-//         await stream.save();
-
-//         emitToUser(
-//             stream.streamId.toString(),
-//             "biddingTimeUpdated",
-//             {
-//                 biddingEndTime: stream.biddingEndTime,
-//                 endTime: stream.endTime
-//             }
-//         );
-
-//         res.status(200).json({
-//             data: stream,
-//             msg: "Bidding time increased"
-//         });
-
-//     } catch (error) {
-//         console.log(error);
-//         res.status(500).json({ error: "Internal server error" });
-//     }
-// };
 const createBidding = async (req, res) => {
     try {
         const { streamId, bidderId, bidAmount } = req.body;
@@ -563,26 +442,10 @@ const createBidding = async (req, res) => {
     }
 };
 
-// const getAllBidding = async (req, res) => {
-//     try {
-//         const { streamId } = req.params;
-//         console.log(streamId, 'streamId of get all bidding')
-//         const extractMongoId = (streamParam) => {
-//             const parts = streamParam.split("_");
-//             console.log(parts, 'parts of extract mongo id')
-//             return parts[1]; // middle part is ObjectId
-//         };
-//         const biddings = await Bidding.find({ streamId: extractMongoId(streamId) }).populate("bidderId").sort({ bidAmount: -1 });
-//         console.log(biddings, 'biddings of get all bidding')
-//         res.status(200).json({ data: biddings, msg: "Biddings fetched" });
-//     } catch (error) {
-//         console.log(error)
-//     }
-// }
 const getAllBidding = async (req, res) => {
     try {
         const { streamId } = req.params; // e.g., 'stream_6992ea5e8d040b1d00b77a25_1771526681674'
-// console.log(streamId, 'streamId of get all bidding')
+        // console.log(streamId, 'streamId of get all bidding')
         const biddings = await Bidding
             .find({ streamId }) // use the full key exactly as stored
             .populate("bidderId")
