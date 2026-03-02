@@ -293,7 +293,7 @@ const createMessage = async (req, res) => {
 const getMessages = async (req, res) => {
     try {
         const { streamId } = req.params;
-        const messages = await BattleMessage.find({ streamId }).populate("userId").sort({ createdAt: -1 });
+        const messages = await BattleMessage.find({ streamId }).populate("userId").sort({ createdAt: 1 });
         res.status(200).json({ data: messages, msg: "Messages fetched" });
     } catch (error) {
         res.status(500).json({ error: error.message });
