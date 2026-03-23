@@ -52,26 +52,15 @@ const LiveStreamSchema = new mongoose.Schema({
     default: "AUCTION",
   },
 
-  // 🔵 Auction Pricing
-  startingBid: {
-    type: Number,
-    required: function () {
-      return this.mode === "AUCTION";
+  // 🔵 Optional auction references (multiple auctions per stream)
+  auctionIds: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Auction",
     },
-  },
+  ],
 
-  currentBid: {
-    type: Number,
-    default: null,
-  },
-
-  highestBidder: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Account",
-    default: null,
-  },
-
-  // 🔵 Timing Control
+  // 🔵 Stream Timing / lifecycle control (stream-level, not auction-level)
   startTime: {
     type: Date,
     default: Date.now,
@@ -81,7 +70,6 @@ const LiveStreamSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
-  // biddingEndTime: { type: Number, default: 5 },
   suddenDeath: {
     type: Boolean,
     default: false,

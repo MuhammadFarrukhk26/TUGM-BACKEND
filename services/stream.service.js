@@ -23,28 +23,20 @@ const { AccountModel } = require("../models/account.model");
 const createStream = async (req, res) => {
     try {
         const {
-            startingBid,
             creatorId,
             productId,
             mode,
-            duration,       // seconds
-            suddenDeath
+            duration,
+            suddenDeath,
+            endTime
         } = req.body;
 
-        if (!creatorId || !productId || !mode) {
-
+        if (!creatorId || !productId) {
             return res.status(400).json({
-                error: `creatorId, productId and mode are required ${creatorId}, ${productId}, ${mode}`
+                error: "creatorId and productId are required"
             });
         }
 
-        // if (mode === "AUCTION") {
-        //     if (!startingBid || !duration) {
-        //         return res.status(400).json({
-        //             error: `startingBid and duration required for auction ${startingBid}, ${duration}`
-        //         });
-        //     }
-        // }
         const existingLive = await LiveStream.findOne({ productId, status: "LIVE" });
         if (existingLive) {
             return res.status(400).json({ error: "Stream already live for this product" });
@@ -82,43 +74,19 @@ const createStream = async (req, res) => {
 
         // }
         const startTime = new Date();
-        let endTime = null;
+        const finalEndTime = endTime ? new Date(endTime) : null;
 
-        if (mode === "AUCTION") {
-
-            if (!startingBid || !duration) {
-                return res.status(400).json({
-                    error: "startingBid and duration are required for AUCTION mode"
-                });
-            }
-
-            const durationSeconds = Number(duration);
-
-            if (isNaN(durationSeconds) || durationSeconds <= 0) {
-                return res.status(400).json({
-                    error: "duration must be a positive number (in seconds)"
-                });
-            }
-
-            endTime = new Date(startTime.getTime() + durationSeconds * 1000);
-        }
         const newStream = new LiveStream({
             creatorId,
             productId,
-            mode,
-
-            startingBid: mode === "AUCTION" ? Number(startingBid) : null,
-            currentBid: mode === "AUCTION" ? Number(startingBid) : null,
-
-            suddenDeath: mode === "AUCTION" ? Boolean(suddenDeath) : false,
-
+            mode: mode || "AUCTION",
             startTime,
-            endTime,
+            endTime: finalEndTime,
+            suddenDeath: Boolean(suddenDeath),
             status: "LIVE",
-
             streamId,
             token,
-            coverImage
+            coverImage,
         });
 
         await newStream.save();

@@ -1,8 +1,8 @@
 const { default: mongoose } = require("mongoose");
 
 const biddingSchema = new mongoose.Schema({
-    // streamId: { type: mongoose.Schema.Types.ObjectId, ref: "LiveStream", required: true },
     streamId: { type: String, required: true },
+    auctionId: { type: mongoose.Schema.Types.ObjectId, ref: "Auction", required: false },
     bidderId: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
     bidAmount: { type: Number, required: true },
 });

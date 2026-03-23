@@ -7,6 +7,7 @@ combineRouter.use("/category",require("./category.router"))
 combineRouter.use("/order",require("./order.router"))
 combineRouter.use("/payment",require("./payment.router"))
 combineRouter.use("/stream",require("./stream.router"))
+combineRouter.use("/auction",require("./auction.router"))
 combineRouter.use("/bidding",require("./bidding.router"))
 combineRouter.use("/shipment", require("./shipment.router"));
 combineRouter.use("/story",require("./story.router"))
