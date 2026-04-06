@@ -35,16 +35,20 @@ const AuctionSchema = new mongoose.Schema({
   },
 
   // 🔵 Timing
-  startTime: {
-    type: Date,
-    default: null,
-  },
+startTime: {
+  type: Date,
+  default: null,
+},
 
-  endTime: {
-    type: Date,
-    default: null,
-  },
+endTime: {
+  type: Date, // initial planned duration
+  default: null,
+},
 
+currentEndTime: {
+  type: Date, // 🔥 actual running timer
+  default: null,
+},
   suddenDeath: {
     type: Boolean,
     default: false,

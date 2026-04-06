@@ -7,26 +7,143 @@ const { AccountModel } = require("../models/account.model");
 const mongoose = require("mongoose");
 
 
+// const createAuction = async (req, res) => {
+//   try {
+//     const { streamId, productId, startingBid, duration, suddenDeath } = req.body;
+
+//     console.log("CREATE AUCTION BODY:", req.body);
+
+//     // -----------------------------
+//     // 1️⃣ Validate Inputs
+//     // -----------------------------
+//     if (!streamId || !startingBid || !duration) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "streamId, startingBid and duration are required"
+//       });
+//     }
+
+//     if (!mongoose.Types.ObjectId.isValid(streamId)) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Invalid streamId"
+//       });
+//     }
+
+//     const stream = await LiveStream.findById(streamId);
+//     if (!stream) {
+//       return res.status(404).json({ success: false, error: "Stream not found" });
+//     }
+
+//     if (stream.status !== "LIVE") {
+//       return res.status(400).json({
+//         success: false,
+//         error: `Stream is not live. Current status: ${stream.status}`
+//       });
+//     }
+
+//     const bid = Number(startingBid);
+//     const durationSeconds = Number(duration);
+
+//     if (isNaN(bid) || bid <= 0) {
+//       return res.status(400).json({ success: false, error: "startingBid must be positive" });
+//     }
+
+//     if (isNaN(durationSeconds) || durationSeconds <= 0) {
+//       return res.status(400).json({ success: false, error: "duration must be positive seconds" });
+//     }
+
+//     // -----------------------------
+//     // 2️⃣ Close Existing Active Auction
+//     // -----------------------------
+//     const existingAuction = await Auction.findOne({ streamId, status: "ACTIVE" });
+
+//     if (existingAuction) {
+//       console.log("Closing existing auction:", existingAuction._id);
+
+//       const highestBid = await Bidding.findOne({ auctionId: existingAuction._id })
+//         .sort({ bidAmount: -1 })
+//         .populate("bidderId");
+
+//       let winnerData = null;
+
+//       if (highestBid && highestBid.bidderId) {
+//         // ✅ Auction had a winner
+//         winnerData = {
+//           bidder: highestBid.bidderId,
+//           amount: highestBid.bidAmount
+//         };
+//         existingAuction.status = "COMPLETED";
+//         existingAuction.winner = highestBid.bidderId._id;
+//         existingAuction.finalBid = highestBid.bidAmount;
+//       } else {
+//         // ❌ No valid bids → cancelled
+//         existingAuction.status = "CANCELLED";
+//         existingAuction.winner = null;
+//         existingAuction.finalBid = existingAuction.currentBid;
+//       }
+
+//       await existingAuction.save();
+
+//       // Emit event to clients
+//       emitToUser(stream.streamId.toString(), "auctionEnded", {
+//         auctionId: existingAuction._id,
+//         status: existingAuction.status,
+//         winner: winnerData
+//       });
+//     }
+
+//     // -----------------------------
+//     // 3️⃣ Create New Auction
+//     // -----------------------------
+//     const startTime = new Date();
+//     const endTime = new Date(startTime.getTime() + durationSeconds * 1000);
+
+//     const auction = new Auction({
+//       streamId,
+//       productId,
+//       startingBid: bid,
+//       currentBid: bid,
+//       bidIncrement: 1,
+//       startTime,
+//       endTime,
+//       suddenDeath: Boolean(suddenDeath),
+//       status: "ACTIVE"
+//     });
+
+//     await auction.save();
+
+//     // Attach auction to stream
+//     stream.auctionIds = stream.auctionIds || [];
+//     stream.auctionIds.push(auction._id);
+//     await stream.save();
+
+//     // Emit event for new auction
+//     emitToUser(stream.streamId.toString(), "auctionCreated", { auction });
+
+//     // -----------------------------
+//     // 4️⃣ Response
+//     // -----------------------------
+//     return res.status(201).json({
+//       success: true,
+//       data: auction,
+//       msg: "Auction created successfully"
+//     });
+
+//   } catch (error) {
+//     console.error("CREATE AUCTION ERROR:", error);
+//     return res.status(500).json({ success: false, error: error.message });
+//   }
+// };
+
 const createAuction = async (req, res) => {
   try {
     const { streamId, productId, startingBid, duration, suddenDeath } = req.body;
 
-    console.log("CREATE AUCTION BODY:", req.body);
-
-    // -----------------------------
-    // 1️⃣ Validate Inputs
-    // -----------------------------
     if (!streamId || !startingBid || !duration) {
       return res.status(400).json({
         success: false,
         error: "streamId, startingBid and duration are required"
-      });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(streamId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid streamId"
       });
     }
 
@@ -38,116 +155,54 @@ const createAuction = async (req, res) => {
     if (stream.status !== "LIVE") {
       return res.status(400).json({
         success: false,
-        error: `Stream is not live. Current status: ${stream.status}`
+        error: `Stream is not live`
       });
     }
 
-    const bid = Number(startingBid);
-    const durationSeconds = Number(duration);
+    const now = Date.now();
+    const durationMs = Number(duration) * 1000;
 
-    if (isNaN(bid) || bid <= 0) {
-      return res.status(400).json({ success: false, error: "startingBid must be positive" });
-    }
-
-    if (isNaN(durationSeconds) || durationSeconds <= 0) {
-      return res.status(400).json({ success: false, error: "duration must be positive seconds" });
-    }
-
-    // -----------------------------
-    // 2️⃣ Close Existing Active Auction
-    // -----------------------------
+    // ✅ Close existing active auction
     const existingAuction = await Auction.findOne({ streamId, status: "ACTIVE" });
 
     if (existingAuction) {
-      console.log("Closing existing auction:", existingAuction._id);
-
-      const highestBid = await Bidding.findOne({ auctionId: existingAuction._id })
-        .sort({ bidAmount: -1 })
-        .populate("bidderId");
-
-      let winnerData = null;
-
-      if (highestBid && highestBid.bidderId) {
-        // ✅ Auction had a winner
-        winnerData = {
-          bidder: highestBid.bidderId,
-          amount: highestBid.bidAmount
-        };
-        existingAuction.status = "COMPLETED";
-        existingAuction.winner = highestBid.bidderId._id;
-        existingAuction.finalBid = highestBid.bidAmount;
-      } else {
-        // ❌ No valid bids → cancelled
-        existingAuction.status = "CANCELLED";
-        existingAuction.winner = null;
-        existingAuction.finalBid = existingAuction.currentBid;
-      }
-
+      existingAuction.status = "COMPLETED";
+      existingAuction.winnerId = existingAuction.highestBidder || null;
       await existingAuction.save();
 
-      // Emit event to clients
       emitToUser(stream.streamId.toString(), "auctionEnded", {
-        auctionId: existingAuction._id,
-        status: existingAuction.status,
-        winner: winnerData
+        auctionId: existingAuction._id
       });
     }
 
-    // -----------------------------
-    // 3️⃣ Create New Auction
-    // -----------------------------
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + durationSeconds * 1000);
-
+    // ✅ Create new auction
     const auction = new Auction({
       streamId,
       productId,
-      startingBid: bid,
-      currentBid: bid,
-      bidIncrement: 1,
-      startTime,
-      endTime,
+      startingBid: Number(startingBid),
+      currentBid: Number(startingBid),
+      startTime: new Date(now),
+      endTime: new Date(now + durationMs), // planned
+      currentEndTime: new Date(now + durationMs), // 🔥 actual timer
       suddenDeath: Boolean(suddenDeath),
       status: "ACTIVE"
     });
 
     await auction.save();
 
-    // Attach auction to stream
-    stream.auctionIds = stream.auctionIds || [];
-    stream.auctionIds.push(auction._id);
-    await stream.save();
-
-    // Emit event for new auction
     emitToUser(stream.streamId.toString(), "auctionCreated", { auction });
 
-    // -----------------------------
-    // 4️⃣ Response
-    // -----------------------------
     return res.status(201).json({
       success: true,
-      data: auction,
-      msg: "Auction created successfully"
+      data: auction
     });
 
   } catch (error) {
-    console.error("CREATE AUCTION ERROR:", error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.error("createAuction error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
-// const getAuctionsByStream = async (req, res) => {
-//   try {
-//     const { streamId } = req.params;
-//     console.log(streamId, 'stream id')
 
-//     const auctions = await Auction.find({ streamId }).populate("productId").populate("highestBidder");
-//     return res.status(200).json({ data: auctions, msg: "Auctions fetched" });
-//   } catch (error) {
-//     console.error("getAuctionsByStream error", error);
-//     console.log(error)
-//     res.status(500).json({ error: error.message });
-//   }
-// };
 const getAuctionsByStream = async (req, res) => {
   try {
     const { streamId } = req.params;
@@ -197,28 +252,57 @@ const getAuctionById = async (req, res) => {
   }
 };
 
+// const endAuction = async (req, res) => {
+//   try {
+//     const auction = await Auction.findById(req.params.id);
+//     if (!auction) return res.status(404).json({ error: "Auction not found" });
+
+//     auction.status = "COMPLETED";
+//     auction.winnerId = auction.highestBidder || null;
+//     await auction.save();
+
+//     const stream = await LiveStream.findById(auction.streamId);
+//     if (stream) emitToUser(stream.streamId.toString(), "auctionEnded", { auction });
+
+//     let winner = null;
+//     if (auction.winnerId) winner = await AccountModel.findById(auction.winnerId);
+
+//     return res.status(200).json({ data: auction, msg: "Auction ended", winner });
+//   } catch (error) {
+//     console.error("endAuction error", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 const endAuction = async (req, res) => {
   try {
     const auction = await Auction.findById(req.params.id);
-    if (!auction) return res.status(404).json({ error: "Auction not found" });
+
+    if (!auction) {
+      return res.status(404).json({ error: "Auction not found" });
+    }
 
     auction.status = "COMPLETED";
+    auction.currentEndTime = new Date(); // stop timer
     auction.winnerId = auction.highestBidder || null;
+
     await auction.save();
 
     const stream = await LiveStream.findById(auction.streamId);
-    if (stream) emitToUser(stream.streamId.toString(), "auctionEnded", { auction });
 
-    let winner = null;
-    if (auction.winnerId) winner = await AccountModel.findById(auction.winnerId);
+    if (stream) {
+      emitToUser(stream.streamId.toString(), "auctionEnded", { auction });
+    }
 
-    return res.status(200).json({ data: auction, msg: "Auction ended", winner });
+    return res.status(200).json({
+      data: auction,
+      msg: "Auction ended"
+    });
+
   } catch (error) {
     console.error("endAuction error", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 const placeBid = async (req, res) => {
   try {
     const { auctionId, bidderId, bidAmount } = req.body;
