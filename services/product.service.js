@@ -28,7 +28,8 @@ const createProduct = async (req, res) => {
 const getAllProduct = async (req, res) => {
     try {
         const Product = await ProductModel.find({})
-        return res.status(200).json({ data: Product?.filter((x?.isDeleted !== true)), msg: null, status: 200 });
+        console.log(Product, 'Seller product');
+        return res.status(200).json({ data: Product, msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
         return { success: false, msg: "Failed to fetch Post" };
@@ -37,7 +38,8 @@ const getAllProduct = async (req, res) => {
 const getAllProductSeller = async (req, res) => {
     try {
         const Product = await ProductModel.find({ userId: req?.params?.id })
-        return res.status(200).json({ data: Product?.filter((x?.isDeleted !== true)), msg: null, status: 200 });
+        console.log(Product, 'Seller product');
+        return res.status(200).json({ data: Product, msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
         return { success: false, msg: "Failed to fetch Post" };
