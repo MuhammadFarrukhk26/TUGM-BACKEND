@@ -14,7 +14,7 @@ const createProduct = async (req, res) => {
                 urls.push(element);
             }
         }
-        console.log(urls,'urls');
+        console.log(urls, 'urls');
         const Product = new ProductModel({ size, images: urls, userId, title, description, listing_type, shipping_type, categories: JSON.parse(categories), tags: JSON.parse(tags), colors: JSON.parse(colors), weight, dimensions, quantity, price, stock });
         await Product.save();
         return res.status(200).json({ data: Product, msg: "Product created successfully", status: 200 });
@@ -28,7 +28,7 @@ const createProduct = async (req, res) => {
 const getAllProduct = async (req, res) => {
     try {
         const Product = await ProductModel.find({})
-        return res.status(200).json({ data: Product, msg: null, status: 200 });
+        return res.status(200).json({ data: Product?.filter((x?.isDeleted !== true)), msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
         return { success: false, msg: "Failed to fetch Post" };
@@ -36,8 +36,8 @@ const getAllProduct = async (req, res) => {
 };
 const getAllProductSeller = async (req, res) => {
     try {
-        const Product = await ProductModel.find({ userId: req?.params?.id})
-        return res.status(200).json({ data: Product, msg: null, status: 200 });
+        const Product = await ProductModel.find({ userId: req?.params?.id })
+        return res.status(200).json({ data: Product?.filter((x?.isDeleted !== true)), msg: null, status: 200 });
     } catch (error) {
         console.error("Error fetching Post:", error);
         return { success: false, msg: "Failed to fetch Post" };
@@ -121,10 +121,10 @@ const addReview = async (req, res) => {
 
         await product.save();
 
-        return res.status(200).json({ 
-            data: product, 
-            msg: "Review added successfully", 
-            status: 200 
+        return res.status(200).json({
+            data: product,
+            msg: "Review added successfully",
+            status: 200
         });
     } catch (error) {
         console.error("Error adding review:", error);
@@ -137,19 +137,19 @@ const getProductReviews = async (req, res) => {
         const { productId } = req.params;
 
         const product = await ProductModel.findById(productId).populate("reviews.userId", "username email");
-        
+
         if (!product) {
             return res.status(404).json({ msg: "Product not found", status: 404 });
         }
 
-        return res.status(200).json({ 
+        return res.status(200).json({
             data: {
                 reviews: product.reviews,
                 averageRating: product.averageRating,
                 totalReviews: product.reviews.length
             },
-            msg: "", 
-            status: 200 
+            msg: "",
+            status: 200
         });
     } catch (error) {
         console.error("Error fetching reviews:", error);
@@ -179,10 +179,10 @@ const deleteReview = async (req, res) => {
 
         await product.save();
 
-        return res.status(200).json({ 
-            data: product, 
-            msg: "Review deleted successfully", 
-            status: 200 
+        return res.status(200).json({
+            data: product,
+            msg: "Review deleted successfully",
+            status: 200
         });
     } catch (error) {
         console.error("Error deleting review:", error);
