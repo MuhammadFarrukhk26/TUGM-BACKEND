@@ -327,6 +327,7 @@ const increaseBiddingTimer = async (req, res) => {
             await Promise.all(
                 activeAuctions.map(async (auction) => {
                     auction.currentEndTime = newEndTime;
+                    auction.endTime = newEndTime; // Ensure endTime is also updated for consistency
                     await auction.save();
                 })
             );
