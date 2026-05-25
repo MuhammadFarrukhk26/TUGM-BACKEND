@@ -28,7 +28,17 @@ const setupSocket = (io) => {
             console.log(data.streamId, 'data of sendPerk')
             io.to(data.streamId).emit("newPerk", data);
         });
-        socket.on("sendMessage", (payload) => { console.log("sendMessage received:", payload); });
+        socket.on("sendMessage", (payload) => {
+            try {
+                const streamId = payload?.streamId;
+
+                if (!streamId) return;
+
+                io.to(String(streamId)).emit("newMessage", payload);
+            } catch (e) {
+                console.error("sendMessage error:", e);
+            }
+        });
         socket.on("sendGift", (payload) => {
             try {
                 const streamId = payload && (payload.streamId || payload.room);
